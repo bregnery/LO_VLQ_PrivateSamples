@@ -2,7 +2,7 @@
 # using: 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: Configuration/GenProduction/python/B2G-RunIIWinter15wmLHE-00235-fragment.py --python_filename LO_old_VLQ_custom_python_cfg.py --eventcontent RAWSIM,LHE --customise Configuration/DataProcessing/Utils.addMonitoring --datatier GEN,LHE --fileout file:LO_old_VLQ_custom.root --conditions 106X_mcRun2_asymptotic_v13 --beamspot Realistic25ns13TeV2016Collision --step LHE,GEN --geometry DB:Extended --era Run2_2016 --no_exec --mc -n 100
+# with command line options: Configuration/GenProduction/python/LO_old_VLQ_custom_python_fragment.py --python_filename LO_old_VLQ_custom_python_cfg.py --eventcontent RAWSIM,LHE --customise Configuration/DataProcessing/Utils.addMonitoring --datatier GEN,LHE --fileout file:LO_old_VLQ_custom.root --conditions 106X_mcRun2_asymptotic_v13 --beamspot Realistic25ns13TeV2016Collision --step LHE,GEN --geometry DB:Extended --era Run2_2016 --no_exec --mc -n 100
 import FWCore.ParameterSet.Config as cms
 
 from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
@@ -36,7 +36,7 @@ process.options = cms.untracked.PSet(
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    annotation = cms.untracked.string('Configuration/GenProduction/python/B2G-RunIIWinter15wmLHE-00235-fragment.py nevts:100'),
+    annotation = cms.untracked.string('Configuration/GenProduction/python/LO_old_VLQ_custom_python_fragment.py nevts:100'),
     name = cms.untracked.string('Applications'),
     version = cms.untracked.string('$Revision: 1.19 $')
 )
@@ -76,8 +76,67 @@ process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '106X_mcRun2_asymptotic_v13', '')
 
+process.generator = cms.EDFilter("Pythia8HadronizerFilter",
+    PythiaParameters = cms.PSet(
+        parameterSets = cms.vstring(
+            'pythia8CommonSettings', 
+            'pythia8CP5Settings', 
+            'processParameters'
+        ),
+        processParameters = cms.vstring(
+            '8000001:new t23 t23bar 2 2 1 1000 10 900 1100 0', 
+            '8000001:doForceWidth = 1', 
+            '6:m0 = 172.5 ! top mass', 
+            '8000001:mayDecay = 1', 
+            '8000001:oneChannel = 1 0.3334 100 24 5 ! add channel tprime to W b with BR=0.333', 
+            '8000001:addChannel = 1 0.3333 100 23 6 ! add channel tprime to Z t with BR=0.333', 
+            '8000001:addChannel = 1 0.3333 100 25 6 ! add channel tprime to H t with BR=0.333'
+        ),
+        pythia8CP5Settings = cms.vstring(
+            'Tune:pp 14', 
+            'Tune:ee 7', 
+            'MultipartonInteractions:ecmPow=0.03344', 
+            'MultipartonInteractions:bProfile=2', 
+            'MultipartonInteractions:pT0Ref=1.41', 
+            'MultipartonInteractions:coreRadius=0.7634', 
+            'MultipartonInteractions:coreFraction=0.63', 
+            'ColourReconnection:range=5.176', 
+            'SigmaTotal:zeroAXB=off', 
+            'SpaceShower:alphaSorder=2', 
+            'SpaceShower:alphaSvalue=0.118', 
+            'SigmaProcess:alphaSvalue=0.118', 
+            'SigmaProcess:alphaSorder=2', 
+            'MultipartonInteractions:alphaSvalue=0.118', 
+            'MultipartonInteractions:alphaSorder=2', 
+            'TimeShower:alphaSorder=2', 
+            'TimeShower:alphaSvalue=0.118', 
+            'SigmaTotal:mode = 0', 
+            'SigmaTotal:sigmaEl = 21.89', 
+            'SigmaTotal:sigmaTot = 100.309', 
+            'PDF:pSet=LHAPDF6:NNPDF31_nnlo_as_0118'
+        ),
+        pythia8CommonSettings = cms.vstring(
+            'Tune:preferLHAPDF = 2', 
+            'Main:timesAllowErrors = 10000', 
+            'Check:epTolErr = 0.01', 
+            'Beams:setProductionScalesFromLHEF = off', 
+            'SLHA:keepSM = on', 
+            'SLHA:minMassSM = 1000.', 
+            'ParticleDecays:limitTau0 = on', 
+            'ParticleDecays:tau0Max = 10', 
+            'ParticleDecays:allowPhotonRadiation = on'
+        )
+    ),
+    comEnergy = cms.double(13000.0),
+    filterEfficiency = cms.untracked.double(1.0),
+    maxEventsToPrint = cms.untracked.int32(1),
+    pythiaHepMCVerbosity = cms.untracked.bool(False),
+    pythiaPylistVerbosity = cms.untracked.int32(1)
+)
+
+
 process.externalLHEProducer = cms.EDProducer("ExternalLHEProducer",
-    args = cms.vstring('/cvmfs/cms.cern.ch/phys_generator/gridpacks/slc6_amd64_gcc481/13TeV/madgraph/V5_2.2.2/TpPairs/t23t23_Incl_tPythia_narrow_M1000_tarball.tar.xz'),
+    args = cms.vstring('/afs/cern.ch/work/b/bregnery/public/VLQ/UL/genproductions/bin/MadGraph5_aMCatNLO/old_gridpack/t23t23_Incl_tPythia_narrow_M1000_slc7_amd64_gcc700_CMSSW_10_6_19_tarball.tar.xz'),
     nEvents = cms.untracked.uint32(100),
     numberOfParameters = cms.uint32(1),
     outputFile = cms.string('cmsgrid_final.lhe'),
@@ -97,6 +156,10 @@ process.LHEoutput_step = cms.EndPath(process.LHEoutput)
 process.schedule = cms.Schedule(process.lhe_step,process.generation_step,process.genfiltersummary_step,process.endjob_step,process.RAWSIMoutput_step,process.LHEoutput_step)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
+# filter all path with the production filter sequence
+for path in process.paths:
+	if path in ['lhe_step']: continue
+	getattr(process,path).insert(0, process.generator)
 
 # customisation of the process.
 
